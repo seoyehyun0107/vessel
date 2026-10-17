@@ -35,7 +35,9 @@ $$('[data-swap]').forEach(el => {
   el.innerHTML = [...text].map(c => `<span class="ch">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
 });
 $$('[data-words]').forEach(el => {
-  el.innerHTML = el.textContent.trim().split(/\s+/).map(w => `<span class="w">${w}</span>`).join(' ');
+  // <br> 줄바꿈은 그대로 두고 단어만 나눔
+  el.innerHTML = el.innerHTML.split(/<br\s*\/?>/).map(line =>
+    line.trim().split(/\s+/).map(w => `<span class="w">${w}</span>`).join(' ')).join('<br>');
 });
 
 /* ---------------- 화면 진입 감지 ---------------- */
@@ -61,6 +63,7 @@ function countUp(el) {
 /* ---------------- 부드러운 스크롤 ---------------- */
 const lenis = new Lenis({ lerp: .075, wheelMultiplier: .95, touchMultiplier: 1.4 });
 lenis.stop();
+window.lenis = lenis;   // 콘솔에서 확인용
 let velocity = 0;
 lenis.on('scroll', e => { velocity = e.velocity; });
 
@@ -261,7 +264,7 @@ float snoise(vec3 v){
 
 const VERT = /* glsl */`
 uniform float uTime; uniform float uWobble; uniform float uSeed;
-varying vec3 vN;
+varying vec3 vN; varying float vY;
 ${NOISE}
 vec3 displace(vec3 p){
   float n = snoise(p * .55 + vec3(uSeed, uSeed * .5, uTime * .14));
@@ -280,13 +283,15 @@ void main(){
     p = d0;
   }
   vN = normalize(normalMatrix * n);
+  vY = position.y;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
 }`;
 
 const FRAG = /* glsl */`
 uniform vec3 uInk; uniform vec3 uPaper;
 uniform float uOpacity; uniform float uDarkEnv; uniform float uRim; uniform float uIri;
-varying vec3 vN;
+uniform float uClipY; uniform float uFill; uniform vec3 uTint;
+varying vec3 vN; varying float vY;
 /* 가상의 스튜디오 조명: 위쪽 소프트박스 + 좌우 세로 스트립 + 가는 반사선 */
 float softbox(vec3 r){
   float e = smoothstep(.62, .98, r.y) * .9;
@@ -302,6 +307,7 @@ float darkband(vec3 r){
   return clamp(d, 0., 1.);
 }
 void main(){
+  if (vY > uClipY) discard;                         // 물 높이 위는 잘라냄
   vec3 n = normalize(vN);
   float face = gl_FrontFacing ? 1. : .5;           // 뒷면은 옅게 → 깊이감
   if (!gl_FrontFacing) n = -n;
@@ -323,7 +329,8 @@ void main(){
 
   float hi = clamp(softbox(r), 0., 1.);
   col = mix(col, vec3(1.), hi * (.4 + .6 * fres));
-  float a = clamp(.025 + ink + hi * fres * .7 + iriK * .35, 0., 1.) * uOpacity;
+  col = mix(col, uTint, uFill * 2.5 * (1. - ink));    // 액체는 옅은 물빛으로 채움
+  float a = clamp(.025 + ink + hi * fres * .7 + iriK * .35 + uFill, 0., 1.) * uOpacity;
   gl_FragColor = vec4(col, a);
 }`;
 
@@ -336,7 +343,7 @@ const camera = new THREE.OrthographicCamera(-W / 2, W / 2, H / 2, -H / 2, -5000,
 camera.position.z = 1000;
 
 const materials = [];
-function glass({ wobble = 0, seed = 0, dark = false, darkEnv = .9, rim = 1, iri } = {}) {
+function glass({ wobble = 0, seed = 0, dark = false, darkEnv = .9, rim = 1, iri, fill = 0, tint = 0xdde5ee } = {}) {
   const m = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 }, uWobble: { value: wobble }, uSeed: { value: seed },
@@ -344,6 +351,7 @@ function glass({ wobble = 0, seed = 0, dark = false, darkEnv = .9, rim = 1, iri 
       uPaper: { value: new THREE.Color(dark ? 0x1d1d1f : 0xffffff) },
       uOpacity: { value: 1 }, uDarkEnv: { value: dark ? .2 : darkEnv }, uRim: { value: rim },
       uIri: { value: iri ?? (dark ? .3 : .35) },
+      uClipY: { value: 100 }, uFill: { value: fill }, uTint: { value: new THREE.Color(tint) },
     },
     vertexShader: VERT, fragmentShader: FRAG,
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -376,8 +384,11 @@ function vessel(wall, { base, t = .035, from = -Infinity, floor = .06, smooth = 
     const an = a0 + Math.PI * k / 8;
     lip.push(V2(C.x + Math.cos(an) * rad, C.y + Math.sin(an) * rad));
   }
+  const innerUp = inner.slice();
   const pts = [...outer, ...lip, ...inner.reverse(), V2(0, floorY)];
-  return new THREE.LatheGeometry(pts, 160);
+  const geo = new THREE.LatheGeometry(pts, 160);
+  geo.userData = { inner: innerUp, floorY };   // 안쪽 단면 (액체 모양에 사용)
+  return geo;
 }
 const GEO = {
   vase: vessel([[.34, -1], [.48, -.93], [.6, -.72], [.62, -.5], [.55, -.27], [.38, -.05], [.22, .18], [.16, .45], [.155, .7], [.19, .9], [.25, 1]], { base: -1, t: .03, floor: .07 }),
@@ -418,10 +429,25 @@ function makeVessel(name, mat, parent = scene) {
 /* ---- 장면 구성 ---- */
 const blobGeo = new THREE.IcosahedronGeometry(1, 48);
 const heroBlob = new THREE.Mesh(blobGeo, glass({ wobble: .16, seed: 1.3 }));
-const holdsB = new THREE.Mesh(blobGeo, glass({ wobble: .18, seed: 7.7 }));
-scene.add(heroBlob, holdsB);
+const blobHolder = new THREE.Group();   // 바깥 그룹으로 늘리고/누르고, 안쪽 물방울은 자유롭게 회전
+blobHolder.add(heroBlob);
+scene.add(blobHolder);
 
 const weVase = makeVessel('vase', glass({ darkEnv: .35 }));
+
+/* 화병 안의 물: 화병 안쪽 단면으로 만든 액체 + 수면 */
+const vaseIn = GEO.vase.userData;
+const liqFloor = vaseIn.floorY + .003;
+const liquid = new THREE.Mesh(
+  new THREE.LatheGeometry([V2(0, liqFloor), ...vaseIn.inner.filter(p => p.y < .95).map(p => V2(p.x * .97, Math.max(p.y, liqFloor)))], 96),
+  glass({ darkEnv: .3, iri: .5, fill: .11, tint: 0xc7d1de }));
+const surface = new THREE.Mesh(new THREE.CircleGeometry(1, 72).rotateX(-Math.PI / 2), glass({ rim: .7, fill: .16, tint: 0xc2cdda }));
+weVase.children[0].add(liquid, surface);
+function innerRadiusAt(y) {
+  const a = vaseIn.inner;
+  for (let i = 1; i < a.length; i++) if (a[i].y >= y) return lerp(a[i - 1].x, a[i].x, clamp((y - a[i - 1].y) / ((a[i].y - a[i - 1].y) || 1)));
+  return a[a.length - 1].x;
+}
 const colVessels = SHAPES.map(s => {
   const v = makeVessel(s, glass({ dark: true }));
   v.userData.vis = 0;
@@ -525,23 +551,6 @@ function frameLoop(time) {
     fog.style.opacity = seg(ps, .72, .28);
   }
 
-  // 물방울: 첫 장면 위치 → 두 번째 장면 위치로 이동/축소, 두 번째 물방울은 아래에서 떠오름
-  const introK = easeOut(clamp((intro - .2) / 1.8));
-  const mv = easeInOut(seg(ps, .12, .5));
-  const r1 = anchors.hero.getBoundingClientRect(), r2 = anchors.holdsA.getBoundingClientRect();
-  heroBlob.visible = r2.bottom > -H * .4 && introK > .001;
-  heroBlob.position.set(lerp(r1.left + r1.width / 2, r2.left + r2.width / 2, mv) - W / 2,
-    -(lerp(r1.top + r1.height / 2, r2.top + r2.height / 2, mv) - H / 2) + (1 - introK) * -60, 0);
-  heroBlob.scale.setScalar(lerp(r1.height, r2.height, mv) / 2 * lerp(.7, 1, introK));
-  heroBlob.material.uniforms.uOpacity.value = introK;
-  heroBlob.rotation.set(t * .07 + ps * 2.4 + smy * .5 + sway, t * .1 + ps * 3.6 + smx * .7 + spin, ps * .8);
-
-  const kb = easeOut(seg(ps, .34, .4));
-  place(holdsB, anchors.holdsB, { mul: Math.max(kb, .001) });
-  holdsB.position.y -= (1 - kb) * H * .45;
-  holdsB.visible = holdsB.visible && kb > .01;
-  holdsB.rotation.set(-t * .12 - ps * 2 - sway, t * .09 + ps * 1.5 - spin * .8, 0);
-
   // 03 THE IDEA — 스크롤에 따라 단어가 하나씩 진해짐
   if (inView(ideaText)) {
     const r = ideaText.getBoundingClientRect();
@@ -553,12 +562,59 @@ function frameLoop(time) {
   // 04 WE HOLD — 처음엔 글자만 있다가, 스크롤하면 WE 와 HOLD 사이가 벌어지며 화병이 나타남
   sWe = damp(sWe, progress(weSec), 10, dt);
   const pw = sWe;
-  const open = easeInOut(seg(pw, .12, .45));
+  const open = easeInOut(seg(pw, .1, .38));
   if (inView(weSec)) weAnchor.style.width = `calc(var(--gap) * ${open.toFixed(4)})`;
   place(weVase, anchors.wehold, { mul: open });
   weVase.visible = weVase.visible && open > .01;
-  weVase.userData.mat.uniforms.uOpacity.value = clamp(open * 1.6);
-  weVase.rotation.set(.16 + sway * .6, t * .3 + pw * Math.PI * 2 + smx * .6 + spin, lerp(-.9, 0, easeOut(seg(pw, .2, .55))));
+  const vaseA = clamp(open * 1.6);
+  weVase.userData.mat.uniforms.uOpacity.value = vaseA;
+  weVase.rotation.set(.16 + sway * .4, t * .3 + pw * Math.PI * 2 + smx * .6 + spin, lerp(-.9, 0, easeOut(seg(pw, .12, .3))));
+
+  /* 물방울의 여정
+     ① 첫 화면: VESSEL 옆 → GLASS HOLDS 옆
+     ② 스크롤: 화병 입구 위까지 흘러감
+     ③ 붓기: 목을 지나며 가늘고 길게 늘어나 몸통 안으로
+     ④ 채우기: 물방울이 사라지며 화병 안 수위가 올라감 */
+  const introK = easeOut(clamp((intro - .2) / 1.8));
+  const mv = easeInOut(seg(ps, .12, .5));
+  const a1 = anchors.hero, a2 = anchors.holdsA;   // 고정 화면(sticky) 안의 위치라 스크롤과 무관
+  const startX = lerp(a1.offsetLeft + a1.offsetWidth / 2, a2.offsetLeft + a2.offsetWidth / 2, mv) - W / 2;
+  const startY = -(lerp(a1.offsetTop + a1.offsetHeight / 2, a2.offsetTop + a2.offsetHeight / 2, mv) - H / 2) - (1 - introK) * 60;
+  const startR = lerp(a1.offsetHeight, a2.offsetHeight, mv) / 2 * lerp(.7, 1, introK);
+
+  const wr = anchors.wehold.getBoundingClientRect();
+  const vS = wr.height / 2 * weVase.userData.k;                       // 화병 크기(px)
+  const vX = wr.left + wr.width / 2 - W / 2, vY = -(wr.top + wr.height / 2 - H / 2);
+  const stageEnd = stage.offsetTop + stage.offsetHeight - H;
+  const arrive = weSec.offsetTop + (weSec.offsetHeight - H) * .44;
+  const tr = easeInOut(clamp((sy - stageEnd) / (arrive - stageEnd)));
+  const pour = easeInOut(seg(pw, .46, .26));
+  const fill = easeInOut(seg(pw, .58, .32));
+
+  const hoverR = vS * .36;
+  const hoverY = Math.max(vY + vS + hoverR * 1.3, -H / 2 + hoverR * 1.2);   // 화병이 아직 아래면 화면 하단에서 기다림
+  let bx = lerp(startX, vX, tr) + Math.sin(tr * Math.PI) * W * .1;        // 살짝 곡선을 그리며 흘러감
+  let by = lerp(startY, hoverY, tr);
+  let br = lerp(startR, hoverR, tr);
+  bx = lerp(bx, vX, pour);
+  by = lerp(by, vY - vS * .52, pour);
+  br = lerp(br, vS * .3, pour) * (1 - fill * .75);
+  const q = Math.sin(pour * Math.PI);                                      // 목을 지날 때 가장 가늘고 길게
+  blobHolder.position.set(bx, by, 0);
+  blobHolder.scale.set(br * (1 - .62 * q), br * (1 + 1.2 * q), br * (1 - .62 * q));
+  const blobA = introK * (1 - seg(fill, .1, .55));
+  heroBlob.material.uniforms.uOpacity.value = blobA;
+  blobHolder.visible = blobA > .01;
+  heroBlob.rotation.set(t * .07 + ps * 2.4 + smy * .5 + sway + tr * 3, t * .1 + ps * 3.6 + smx * .7 + spin, ps * .8);
+
+  // 화병 안 물
+  const level = lerp(liqFloor, -.22, fill);
+  liquid.visible = surface.visible = fill > .004;
+  liquid.material.uniforms.uClipY.value = level;
+  liquid.material.uniforms.uOpacity.value = surface.material.uniforms.uOpacity.value = vaseA;
+  surface.position.y = level;
+  const sr = innerRadiusAt(level) * .965;
+  surface.scale.set(sr, 1, sr);
 
   // 05 COLLECTION — 드럼 리스트 + 형태 교체
   sCol = damp(sCol, progress(colSec), 10, dt);
@@ -599,11 +655,6 @@ function frameLoop(time) {
     const pg = progress(gal);
     track.style.transform = `translate3d(${-pg * galDist}px, 0, 0)`;
     galBar.style.transform = `scaleX(${pg})`;
-    galImgs.forEach(img => {
-      const r = img.parentElement.getBoundingClientRect();
-      const c = (r.left + r.width / 2) / W - .5;
-      img.style.transform = `translate3d(${c * -3}%, 0, 0) scale(1.06)`;
-    });
   }
 
   // 08 MARQUEE — 스크롤 속도/방향에 반응

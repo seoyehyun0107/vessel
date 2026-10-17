@@ -122,7 +122,6 @@ body.past-hero .nav__logo { opacity: 1; transform: none; }
 .stage__anchor { position: absolute; aspect-ratio: 1; }
 .stage__anchor--1 { left: 47%; top: 14%; width: min(36vw, 64vh); }
 .stage__anchor--2 { right: 7%; top: 30%; width: min(30vw, 54vh); }
-.stage__anchor--3 { right: 33%; top: 58%; width: min(15vw, 28vh); }
 
 .stage__meta { position: absolute; left: var(--pad); bottom: 22%; width: min(420px, 80vw); }
 .stage__metaset { display: flex; flex-direction: column; }
@@ -158,7 +157,7 @@ body.past-hero .nav__logo { opacity: 1; transform: none; }
 .stat__num::before { content: '0'; }
 
 /* ---------- 04 WE HOLD ---------- */
-.wehold { position: relative; height: 260vh; background: linear-gradient(105deg, #b4bbc9 0%, #d6dae2 28%, #f1f2f4 58%, #fbfbfb 100%); }
+.wehold { position: relative; height: 340vh; background: linear-gradient(105deg, #b4bbc9 0%, #d6dae2 28%, #f1f2f4 58%, #fbfbfb 100%); }
 .wehold__sticky {
   position: sticky; top: 0; height: 100vh; overflow: hidden;
   display: flex; align-items: center; justify-content: center; gap: 1vw;
@@ -250,7 +249,7 @@ body.past-hero .nav__logo { opacity: 1; transform: none; }
 .gallery__track { display: flex; gap: 3vw; padding: 0 var(--pad); width: max-content; will-change: transform; margin-top: 4vh; }
 .gcard { flex: none; width: calc(68vh * .709); }
 .gcard__img { aspect-ratio: 1418 / 2000; overflow: hidden; background: #f3f3f3; }
-.gcard__img img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.06); will-change: transform; transition: filter .6s var(--ease); }
+.gcard__img img { width: 100%; height: 100%; object-fit: contain; transition: filter .6s var(--ease); }
 .gcard:hover .gcard__img img { filter: contrast(1.08); }
 .gcard figcaption { display: flex; gap: 14px; margin-top: 12px; font-size: 11px; letter-spacing: .03em; text-transform: uppercase; }
 .gcard figcaption span:last-child { margin-left: auto; color: #8a8a8a; }
@@ -300,7 +299,6 @@ body.past-hero .nav__logo { opacity: 1; transform: none; }
 @media (max-width: 760px) {
   .stage__anchor--1 { left: 30%; top: 22%; width: 66vw; }
   .stage__anchor--2 { right: -6%; top: 28%; width: 56vw; }
-  .stage__anchor--3 { right: 46%; top: 50%; width: 28vw; }
   .stage__meta { bottom: 14%; }
   .stage__year { display: none; }
   .stats { grid-template-columns: 1fr 1fr 1fr; }
