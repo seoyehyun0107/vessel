@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VESSEL — An Editorial Archive of Glass Objects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Noto+Sans+KR:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body class="is-loading">
+
+<!-- 로딩 화면 -->
+<div class="loader" aria-hidden="true">
+  <div class="loader__bar"></div>
+  <canvas class="loader__gl"></canvas>
+  <div class="loader__word">VESSEL</div>
+  <div class="loader__count">0</div>
+</div>
+
+<div class="cursor" aria-hidden="true"><span class="cursor__label"></span></div>
+
+<!-- 3D 유리 오브젝트가 그려지는 캔버스 (화면 위에 고정) -->
+<canvas id="gl" aria-hidden="true"></canvas>
+
+<header class="nav">
+  <a class="nav__logo" href="#top">VESSEL®</a>
+  <nav class="nav__links">
+    <a href="#posters">Posters</a><span class="nav__sep">/</span><a href="#collection">Objects</a><span class="nav__sep">/</span><a href="#idea">About</a><span class="nav__sep">/</span><a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- 01 HERO → 02 GLASS HOLDS
+       한 화면에 고정된 채, 스크롤하면 VESSEL 글자가 아래로 떨어져 사라지고
+       GLASS / HOLDS 가 아래에서 올라와 다음 장면으로 바뀝니다. -->
+  <section class="stage" id="top">
+    <div class="stage__sticky">
+      <div class="stage__titles">
+        <h1 class="stage__t stage__t1"><span class="mask" data-swap="out">VESSEL</span></h1>
+        <h2 class="stage__t stage__t2">
+          <span class="mask" data-swap="in">GLASS</span>
+          <span class="mask" data-swap="in" data-delay=".06">HOLDS</span>
+        </h2>
+      </div>
+
+      <div class="stage__anchor stage__anchor--1" data-gl="hero"></div>
+      <div class="stage__anchor stage__anchor--2" data-gl="holdsA"></div>
+      <div class="stage__anchor stage__anchor--3" data-gl="holdsB"></div>
+
+      <div class="stage__meta">
+        <div class="stage__metaset" data-swap-block="out">
+          <span class="mask"><span class="en">An editorial archive</span></span>
+          <span class="mask"><span class="en">of glass objects</span></span>
+          <span class="mask"><span class="ko">유리가 담는 다섯 가지를 기록합니다.</span></span>
+        </div>
+        <div class="stage__metaset" data-swap-block="in">
+          <span class="mask"><span class="en">Five objects.</span></span>
+          <span class="mask"><span class="en">Five purposes.</span></span>
+          <span class="mask"><span class="ko">꽃과 향, 술과 물, 그리고 생명. 유리는 저마다 다른 것을 담습니다.</span></span>
+        </div>
+      </div>
+
+      <div class="stage__fog"></div>
+    </div>
+  </section>
+
+  <!-- 03 THE IDEA -->
+  <section class="idea" id="idea">
+    <p class="label">The Idea / 01</p>
+    <p class="idea__text" data-words>Glass takes shape around what it holds. A flower, a scent, a drink, water, a life.</p>
+    <p class="ko idea__ko">비어 있을 때는 형태가 보이고, 무언가를 담으면 쓰임이 보입니다.</p>
+  </section>
+
+  <!-- 04 WE HOLD (스크롤 고정) -->
+  <section class="wehold">
+    <div class="wehold__sticky">
+      <span class="wehold__word wehold__we">WE</span>
+      <div class="wehold__anchor" data-gl="wehold"></div>
+      <span class="wehold__word wehold__hold">HOLD</span>
+      <p class="wehold__sub">what matters</p>
+    </div>
+  </section>
+
+  <!-- 05 COLLECTION (드럼 리스트 + 3D 유리) -->
+  <section class="collection" id="collection">
+    <div class="collection__sticky">
+      <div class="collection__head">
+        <p class="label">The Collection</p>
+        <h3>Five vessels.<br>Five things they hold.</h3>
+      </div>
+      <div class="drum">
+        <ul class="drum__list">
+          <li class="drum__item" data-holds="Flowers" data-ko="꽃을 위한 자리">Vase</li>
+          <li class="drum__item" data-holds="A scent" data-ko="향을 머금는 병">Perfume Bottle</li>
+          <li class="drum__item" data-holds="A pour" data-ko="한 잔을 위한 곡선">Wine Glass</li>
+          <li class="drum__item" data-holds="Light" data-ko="빛을 담는 컵">Drinking Glass</li>
+          <li class="drum__item" data-holds="A life" data-ko="생명을 위한 공간">Fishbowl</li>
+        </ul>
+      </div>
+      <div class="collection__anchor" data-gl="collection"></div>
+    </div>
+  </section>
+
+  <!-- 06 POSTERS (리스트 + 고정 포스터 프레임) -->
+  <section class="posters" id="posters">
+    <div class="posters__list">
+      <a class="pitem" data-i="0">
+        <span class="pitem__name">Vase</span>
+        <span class="pitem__desc">A place for flowers · 꽃을 위한 자리</span>
+      </a>
+      <a class="pitem" data-i="1">
+        <span class="pitem__name">Perfume</span>
+        <span class="pitem__desc">Hold the scent · 향을 머금는 병</span>
+      </a>
+      <a class="pitem" data-i="2">
+        <span class="pitem__name">Wine</span>
+        <span class="pitem__desc">Made for a pour · 한 잔을 위한 곡선</span>
+      </a>
+      <a class="pitem" data-i="3">
+        <span class="pitem__name">Glass</span>
+        <span class="pitem__desc">Light · 빛을 담는 컵</span>
+      </a>
+      <a class="pitem" data-i="4">
+        <span class="pitem__name">Fishbowl</span>
+        <span class="pitem__desc">A space for life · 생명을 위한 공간</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- 리스트에 마우스를 올렸을 때만 나타나는 포스터 미리보기 -->
+  <div class="preview" aria-hidden="true">
+    <img class="frame__img is-shown" src="posters/01-vase.webp" alt="">
+    <img class="frame__img" src="posters/02-perfume.webp" alt="">
+    <img class="frame__img" src="posters/03-wine.webp" alt="">
+    <img class="frame__img" src="posters/04-glass.webp" alt="">
+    <img class="frame__img" src="posters/05-fishbowl.webp" alt="">
+  </div>
+
+  <!-- 07 GALLERY (가로 스크롤) -->
+  <section class="gallery" id="gallery">
+    <div class="gallery__sticky">
+      <div class="gallery__head">
+        <p class="label">All Posters <span class="gallery__count">(05)</span></p>
+        <div class="gallery__progress"><span></span></div>
+      </div>
+      <div class="gallery__track">
+        <figure class="gcard" data-src="posters/01-vase.webp" data-title="01 / Vase" data-sub="A Place for Flowers — 꽃을 위한 자리">
+          <div class="gcard__img"><img src="posters/01-vase.webp" alt="" loading="lazy"></div>
+          <figcaption><span>01</span><span>Vase</span><span>A Place for Flowers</span></figcaption>
+        </figure>
+        <figure class="gcard" data-src="posters/02-perfume.webp" data-title="02 / Perfume Bottle" data-sub="Hold the Scent — 향을 머금는 병">
+          <div class="gcard__img"><img src="posters/02-perfume.webp" alt="" loading="lazy"></div>
+          <figcaption><span>02</span><span>Perfume Bottle</span><span>Hold the Scent</span></figcaption>
+        </figure>
+        <figure class="gcard" data-src="posters/03-wine.webp" data-title="03 / Wine Glass" data-sub="Made for a Pour — 한 잔을 위한 곡선">
+          <div class="gcard__img"><img src="posters/03-wine.webp" alt="" loading="lazy"></div>
+          <figcaption><span>03</span><span>Wine Glass</span><span>Made for a Pour</span></figcaption>
+        </figure>
+        <figure class="gcard" data-src="posters/04-glass.webp" data-title="04 / Drinking Glass" data-sub="Light — 빛을 담는 컵">
+          <div class="gcard__img"><img src="posters/04-glass.webp" alt="" loading="lazy"></div>
+          <figcaption><span>04</span><span>Drinking Glass</span><span>Light</span></figcaption>
+        </figure>
+        <figure class="gcard" data-src="posters/05-fishbowl.webp" data-title="05 / Fishbowl" data-sub="A Space for Life — 생명을 위한 공간">
+          <div class="gcard__img"><img src="posters/05-fishbowl.webp" alt="" loading="lazy"></div>
+          <figcaption><span>05</span><span>Fishbowl</span><span>A Space for Life</span></figcaption>
+        </figure>
+        <div class="gallery__end">
+          <p>Glass takes shape<br>around what it holds.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__inner">
+      <span>A Quiet Beginning —</span><span>Hold the Scent —</span><span>Made for a Pour —</span><span>Light —</span><span>A Space for Life —</span>
+      <span>A Quiet Beginning —</span><span>Hold the Scent —</span><span>Made for a Pour —</span><span>Light —</span><span>A Space for Life —</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- 09 FOOTER -->
+<footer class="footer" id="contact" data-inview>
+  <div class="footer__links">
+    <a href="#idea">About</a>
+    <a href="#posters">Work</a>
+    <a href="#collection">Objects</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <div class="footer__big" data-split>VESSEL</div>
+  <div class="footer__bottom">
+    <span>© 2026 VESSEL</span>
+    <span class="ko">유리가 담는 다섯 가지</span>
+    <a href="#top">Back to top ↑</a>
+  </div>
+</footer>
+
+<!-- 포스터 크게 보기 -->
+<div class="lightbox" aria-hidden="true">
+  <button class="lightbox__close" aria-label="Close">Close ✕</button>
+  <button class="lightbox__nav lightbox__prev" aria-label="Previous">←</button>
+  <img class="lightbox__img" src="" alt="">
+  <button class="lightbox__nav lightbox__next" aria-label="Next">→</button>
+  <div class="lightbox__cap"><span class="lightbox__title"></span><span class="lightbox__sub"></span></div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
