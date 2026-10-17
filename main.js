@@ -134,13 +134,68 @@ $$('.magnetic').forEach(el => {
 
 /* ---------------- 라이트박스 ---------------- */
 const cards = $$('.gcard');
-const lb = $('.lightbox'), lbImg = $('.lightbox__img');
+const lb = $('.lightbox');
 let lbIndex = 0;
+
+/* 포스터 조립: 템플릿을 넣고 글자를 줄 단위로 나눈 뒤, 순서대로 나타나게 함 */
+const pbuild = $('.pbuild'), pLayer = $('.pbuild__layer');
+const posterTpls = $$('template[data-poster]');
+let lbOpenedAt = 0;
+function buildPoster(i) {
+  const tp = posterTpls[i];
+  pbuild.classList.remove('is-built');
+  pbuild.style.setProperty('--pbg', tp.dataset.bg);
+  pbuild.style.setProperty('--pink', tp.dataset.ink);
+  pLayer.innerHTML = tp.innerHTML;
+  let order = 0;
+  $$('.pb', pLayer).forEach(el => {
+    const start = order;
+    el.innerHTML = el.innerHTML.split(/<br\s*\/?>/).map(l =>
+      `<span class="pl"><span class="pi" style="--d:${(.45 + order++ * .08).toFixed(2)}s">${l.trim()}</span></span>`).join('');
+    el.style.setProperty('--d', `${(.35 + start * .08).toFixed(2)}s`);
+  });
+  $('.pbuild__orig').src = cards[i].dataset.src;
+  pbuild.classList.add('reset');
+  pbuild.classList.remove('is-shown', 'is-built', 'show-orig', 'orig-out');
+  void pbuild.offsetWidth;
+  pbuild.classList.remove('reset');
+  lbOpenedAt = performance.now();
+  requestAnimationFrame(() => requestAnimationFrame(() => pbuild.classList.add('is-shown', 'is-built')));
+}
+
+/* 무한 반복: 조립 → 원본 포스터 등장 → 원본이 걷히며 다시 조립 → … */
+const BUILD_HOLD = 4600, ORIG_HOLD = 3400;   // 조립된 상태 / 원본이 보이는 시간 (ms)
+let lbToken = 0;
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function posterLoop(i) {
+  const tok = ++lbToken;
+  buildPoster(i);
+  while (true) {
+    await wait(BUILD_HOLD); if (tok !== lbToken) return;
+    pbuild.classList.add('show-orig');                       // 원본 포스터가 아래에서 올라와 덮음
+    await wait(ORIG_HOLD); if (tok !== lbToken) return;
+    pbuild.classList.add('reset');                           // 덮여 있는 동안 글자·유리 초기화
+    pbuild.classList.remove('is-built');
+    lbOpenedAt = Infinity;
+    void pbuild.offsetWidth;
+    pbuild.classList.remove('reset');
+    requestAnimationFrame(() => {
+      if (tok !== lbToken) return;
+      pbuild.classList.add('orig-out', 'is-built');          // 원본은 위로 걷히고, 다시 조립 시작
+      lbOpenedAt = performance.now();
+    });
+    await wait(1300); if (tok !== lbToken) return;
+    pbuild.classList.add('reset');
+    pbuild.classList.remove('show-orig', 'orig-out');
+    void pbuild.offsetWidth;
+    pbuild.classList.remove('reset');
+  }
+}
+
 function openLightbox(i) {
   lbIndex = (i + cards.length) % cards.length;
   const c = cards[lbIndex];
-  lbImg.src = c.dataset.src;
-  lbImg.alt = c.dataset.title;
+  posterLoop(lbIndex);
   $('.lightbox__title').textContent = c.dataset.title;
   $('.lightbox__sub').textContent = c.dataset.sub;
   lb.classList.add('is-open');
@@ -149,6 +204,7 @@ function openLightbox(i) {
   lenis.stop();
 }
 function closeLightbox() {
+  lbToken++;
   lb.classList.remove('is-open');
   lb.setAttribute('aria-hidden', 'true');
   lenis.start();
@@ -343,12 +399,12 @@ const camera = new THREE.OrthographicCamera(-W / 2, W / 2, H / 2, -H / 2, -5000,
 camera.position.z = 1000;
 
 const materials = [];
-function glass({ wobble = 0, seed = 0, dark = false, darkEnv = .9, rim = 1, iri, fill = 0, tint = 0xdde5ee } = {}) {
+function glass({ wobble = 0, seed = 0, dark = false, darkEnv = .9, rim = 1, iri, fill = 0, tint = 0xdde5ee, paper } = {}) {
   const m = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 }, uWobble: { value: wobble }, uSeed: { value: seed },
       uInk: { value: new THREE.Color(dark ? 0xe6e6e8 : 0x0a0a0a) },
-      uPaper: { value: new THREE.Color(dark ? 0x1d1d1f : 0xffffff) },
+      uPaper: { value: new THREE.Color(paper ?? (dark ? 0x1d1d1f : 0xffffff)) },
       uOpacity: { value: 1 }, uDarkEnv: { value: dark ? .2 : darkEnv }, uRim: { value: rim },
       uIri: { value: iri ?? (dark ? .3 : .35) },
       uClipY: { value: 100 }, uFill: { value: fill }, uTint: { value: new THREE.Color(tint) },
@@ -464,6 +520,26 @@ const lVessels = SHAPES.map(s => {
   return v;
 });
 let loaderAlive = true;
+
+/* 라이트박스 포스터 속 3D 유리 (처음 열 때 만들어짐) */
+const lbCanvas = $('.pbuild__gl');
+const LB_UNIT = { vase: 2, perfume: 1.9, wine: 2, tumbler: 2, fishbowl: 1.5 };   // 각 형태의 높이(모델 단위)
+let lbR = null, lbScene, lbCam, lbW = 0, lbH = 0;
+const lbVs = [];
+function lbVessel(i) {
+  if (!lbR) {
+    lbR = new THREE.WebGLRenderer({ canvas: lbCanvas, antialias: true, alpha: true });
+    lbR.setPixelRatio(Math.min(devicePixelRatio, 2));
+    lbScene = new THREE.Scene();
+    lbCam = new THREE.OrthographicCamera(-1, 1, 1, -1, -5000, 5000);
+    lbCam.position.z = 1000;
+  }
+  if (!lbVs[i]) {
+    lbVs[i] = makeVessel(SHAPES[i], glass(posterTpls[i].dataset.dark === '1' ? { dark: true, paper: 0x000000, fill: .06, tint: 0xf0f0f0 } : { darkEnv: .35 }), lbScene);
+    lbVs[i].userData.vis = 0;
+  }
+  return lbVs[i];
+}
 
 const anchors = Object.fromEntries($$('[data-gl]').map(el => [el.dataset.gl, el]));
 
@@ -681,6 +757,35 @@ function frameLoop(time) {
       lv.rotation.set(.22, t * 2.2 + i * 1.1 + (1 - vis) * 2, (1 - vis) * .35 * (i % 2 ? 1 : -1));
     });
     lRenderer.render(lScene, camera);
+  }
+
+  // 라이트박스: 조립된 포스터 가운데에서 유리가 돌아감
+  if (lb.classList.contains('is-open')) {
+    const r = pbuild.getBoundingClientRect();
+    if (Math.abs(r.width - lbW) > .5 || Math.abs(r.height - lbH) > .5) {
+      lbW = r.width; lbH = r.height;
+      lbVessel(lbIndex);
+      lbR.setSize(lbW, lbH);
+      Object.assign(lbCam, { left: -lbW / 2, right: lbW / 2, top: lbH / 2, bottom: -lbH / 2 });
+      lbCam.updateProjectionMatrix();
+    }
+    lbVessel(lbIndex);
+    const since = (performance.now() - lbOpenedAt) / 1000;
+    const tp = posterTpls[lbIndex];
+    lbVs.forEach((v, i) => {
+      if (!v) return;
+      const on = i === lbIndex;
+      v.userData.vis = on ? easeOut(clamp((since - .55) / 1.3)) : damp(v.userData.vis, 0, 14, dt);
+      const vis = v.userData.vis;
+      v.visible = vis > .01;
+      if (!v.visible) return;
+      const cx = +posterTpls[i].dataset.cx, cy = +posterTpls[i].dataset.cy, hh = +posterTpls[i].dataset.h;
+      v.position.set((cx - .5) * lbW, -(cy - .5) * lbH - (1 - vis) * lbH * .06, 0);
+      v.scale.setScalar(lbH * hh / LB_UNIT[SHAPES[i]] * (.82 + .18 * vis));
+      v.userData.mat.uniforms.uOpacity.value = vis;
+      v.rotation.set(.14 + smy * .25, t * .55 + i + (1 - vis) * 2.4 + smx * .5, (1 - vis) * .25);
+    });
+    lbR.render(lbScene, lbCam);
   }
 
   // 화면에 보이는 유리가 없으면 그리지 않음 (성능)

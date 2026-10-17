@@ -287,8 +287,46 @@ body.past-hero .nav__logo { opacity: 1; transform: none; }
   opacity: 0; visibility: hidden; transition: opacity .5s var(--ease), visibility .5s;
 }
 .lightbox.is-open { opacity: 1; visibility: visible; }
-.lightbox__img { max-height: 84vh; max-width: 80vw; transform: translateY(24px) scale(.97); transition: transform .8s var(--ease); }
-.lightbox.is-open .lightbox__img { transform: none; }
+
+/* 포스터 조립 무대 */
+.pbuild {
+  position: relative; flex: none;
+  height: min(84vh, calc(78vw * 2000 / 1418)); aspect-ratio: 1418 / 2000;
+  container-type: inline-size;
+  overflow: hidden; background: var(--pbg, #fff); color: var(--pink, #0b0b0b);
+  font-family: 'Inter', sans-serif;
+  clip-path: inset(50% 0 50% 0);
+  transition: clip-path 1s var(--ease);
+}
+.pbuild.is-shown { clip-path: inset(0 0 0 0); }
+.pbuild__layer { position: absolute; inset: 0; }
+.pbuild__gl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* 원본 포스터: 아래에서 올라와 덮고 → 위로 걷힘 */
+.pbuild__orig { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; clip-path: inset(100% 0 0 0); transition: clip-path 1.2s var(--ease); }
+.pbuild.show-orig .pbuild__orig { clip-path: inset(0 0 0 0); }
+.pbuild.show-orig.orig-out .pbuild__orig { clip-path: inset(0 0 100% 0); }
+/* 다시 조립하기 전, 보이지 않는 곳에서 순간 초기화 */
+.pbuild.reset, .pbuild.reset .pbuild__orig, .pbuild.reset .pi, .pbuild.reset .pb.box, .pbuild.reset .pb-frame path { transition: none !important; }
+
+.pb {
+  position: absolute; left: var(--x); top: var(--y);
+  transform: translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1, var(--sy, 1));
+  font-size: var(--fs, 10cqw); font-weight: 500; letter-spacing: -.065em; line-height: .84;
+  text-transform: uppercase; text-align: var(--ta, left); white-space: nowrap;
+}
+.pb.bold { font-weight: 700; letter-spacing: -.07em; }
+.pb.small { font-size: var(--fs, 1.25cqw); font-style: italic; font-weight: 400; letter-spacing: -.03em; line-height: 1.12; text-transform: none; }
+.pb.small.caps { text-transform: uppercase; letter-spacing: -.04em; }
+.pb.tiny { font-size: 1.45cqw; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
+.pb.box { border: .45cqw solid currentColor; padding: .08em .2em .03em .14em; clip-path: inset(0 100% 0 0); transition: clip-path 1s var(--ease) var(--d, .3s); }
+.is-built .pb.box { clip-path: inset(-5% -5% -5% -5%); }
+/* 줄마다 마스크 → 글자가 제 방향으로 밀려 들어옴 */
+.pb .pl { display: block; overflow: hidden; padding-bottom: .05em; margin-bottom: -.05em; }
+.pb .pi { display: inline-block; transform: translateY(110%); transition: transform 1.1s var(--ease) var(--d, .3s); }
+.is-built .pb .pi { transform: none; }
+.pb-frame { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pb-frame path { fill: none; stroke: #fff; stroke-width: 52; stroke-linejoin: miter; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 2s var(--ease) .35s; }
+.is-built .pb-frame path { stroke-dashoffset: 0; }
 .lightbox__close { position: absolute; top: 14px; right: var(--pad); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
 .lightbox__nav { font-size: 28px; font-weight: 200; padding: 12px; opacity: .6; transition: opacity .3s; }
 .lightbox__nav:hover { opacity: 1; }

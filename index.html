@@ -6,7 +6,7 @@
 <title>VESSEL — An Editorial Archive of Glass Objects</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Noto+Sans+KR:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Sans+KR:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
 <script type="importmap">
@@ -210,10 +210,67 @@
 <div class="lightbox" aria-hidden="true">
   <button class="lightbox__close" aria-label="Close">Close ✕</button>
   <button class="lightbox__nav lightbox__prev" aria-label="Previous">←</button>
-  <img class="lightbox__img" src="" alt="">
+  <!-- 포스터가 조립되는 무대: 배경 → 글자 → 3D 유리 순서로 나타남 -->
+  <div class="pbuild">
+    <div class="pbuild__layer"></div>
+    <canvas class="pbuild__gl"></canvas>
+    <img class="pbuild__orig" src="" alt="">   <!-- 마지막에 등장하는 원본 포스터 -->
+  </div>
   <button class="lightbox__nav lightbox__next" aria-label="Next">→</button>
   <div class="lightbox__cap"><span class="lightbox__title"></span><span class="lightbox__sub"></span></div>
 </div>
+
+
+<!-- ===========================================================
+     포스터 조립용 레이아웃 (라이트박스)
+     --x / --y : 글자 덩어리의 중심 위치 (포스터 기준 %)
+     --r       : 회전 각도,  --fs : 글자 크기 (포스터 너비 기준 cqw)
+     --sy:-1   : 글자 뒤집기 (포스터의 거울 글자 표현)
+     data-shape / cx / cy / h : 가운데 3D 유리의 종류, 위치, 높이(포스터 높이 대비)
+     =========================================================== -->
+<template data-poster="0" data-bg="#ffffff" data-ink="#0b0b0b" data-cx=".5" data-cy=".5" data-h=".7">
+  <div class="pb" style="--x:50%;--y:7.6%;--fs:8.7cqw;--ta:center">A Quiet<br>Beginning</div>
+  <div class="pb" style="--x:8.6%;--y:51%;--r:-90deg;--fs:7.7cqw">Start with<br>Stillness</div>
+  <div class="pb" style="--x:90.6%;--y:51%;--r:90deg;--fs:7.7cqw">Make room<br>for the new</div>
+  <div class="pb small" style="--x:12%;--y:23%;--r:90deg">A new year begins with a quiet shift. Make<br>space for what has yet to take shape.</div>
+  <div class="pb small" style="--x:86%;--y:23%;--r:90deg">A new year begins with a quiet shift. Make<br>space for what has yet to take shape.</div>
+  <div class="pb small" style="--x:12%;--y:77.5%;--r:90deg">A new year begins with a quiet shift. Make<br>space for what has yet to take shape.</div>
+  <div class="pb small" style="--x:86%;--y:77.5%;--r:90deg">A new year begins with a quiet shift. Make<br>space for what has yet to take shape.</div>
+  <div class="pb" style="--x:50%;--y:91.2%;--fs:8.7cqw;--ta:center">01 / Vase ·<br>A place for flowers</div>
+</template>
+<template data-poster="1" data-bg="#000000" data-ink="#ffffff" data-dark="1" data-cx=".5" data-cy=".52" data-h=".56">
+  <div class="pb box" style="--x:28%;--y:14%;--r:-20deg;--fs:10cqw">Hold</div>
+  <div class="pb box" style="--x:89%;--y:22.5%;--r:90deg;--fs:10cqw">The scent</div>
+  <div class="pb box" style="--x:9.6%;--y:59%;--r:-90deg;--fs:10cqw">02 / Perfume</div>
+  <div class="pb box" style="--x:81%;--y:82%;--r:-65deg;--fs:10cqw">Bottle</div>
+  <div class="pb tiny" style="--x:6%;--y:12%;--r:90deg;--sy:-1">The spot the spot the</div>
+  <div class="pb tiny" style="--x:93.5%;--y:87%;--r:90deg;--sy:-1">The spot the spot the</div>
+</template>
+<template data-poster="2" data-bg="#d4d4d4" data-ink="#0b0b0b" data-cx=".5" data-cy=".5" data-h=".64">
+  <svg class="pb-frame" viewBox="0 0 1418 2000" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M215 118 L735 100 L735 165 M600 205 L1325 95 L1305 1060 C1300 1180 1365 1260 1355 1360 C1345 1450 1300 1470 1305 1560 L1320 1945 L770 1925 M790 1790 L620 1830 M212 118 L212 1790"/></svg>
+  <div class="pb" style="--x:12%;--y:6.6%;--fs:13.5cqw">03</div>
+  <div class="pb" style="--x:10%;--y:53%;--r:90deg;--sy:-1;--fs:11.5cqw">Wine</div>
+  <div class="pb" style="--x:23.5%;--y:93.6%;--fs:11.5cqw">Glass</div>
+  <div class="pb" style="--x:84.6%;--y:45%;--r:-90deg;--fs:10.4cqw">Made for a pour</div>
+  <div class="pb small" style="--x:17.4%;--y:13.5%;--r:90deg">The light returns.</div>
+  <div class="pb small" style="--x:17.4%;--y:25%;--r:90deg">he air begins to soften.</div>
+  <div class="pb small" style="--x:17.4%;--y:39.5%;--r:90deg">Let a little change find its way inside.</div>
+</template>
+<template data-poster="3" data-bg="#d4d4d4" data-ink="#0b0b0b" data-cx=".5" data-cy=".5" data-h=".46">
+  <div class="pb" style="--x:36%;--y:6.4%;--fs:15.6cqw">Glass</div>
+  <div class="pb" style="--x:90.8%;--y:43%;--r:90deg;--fs:13.6cqw">04 / Drinking</div>
+  <div class="pb" style="--x:7.2%;--y:88%;--r:-90deg;--fs:10.6cqw">Light</div>
+  <div class="pb tiny" style="--x:6%;--y:23%;--r:90deg;--sy:-1">The spot the spot the</div>
+  <div class="pb tiny" style="--x:6%;--y:65%;--r:90deg;--sy:-1">The spot the spot the</div>
+</template>
+<template data-poster="4" data-bg="#d3d3d3" data-ink="#ffffff" data-cx=".51" data-cy=".47" data-h=".44">
+  <div class="pb bold" style="--x:9.6%;--y:34%;--r:-90deg;--fs:14.2cqw">Fishbowl</div>
+  <div class="pb bold" style="--x:57%;--y:7%;--fs:14.2cqw">A space</div>
+  <div class="pb small caps" style="--x:88.5%;--y:24%;--r:90deg;--fs:3.6cqw">More light<br>More life</div>
+  <div class="pb bold" style="--x:83.5%;--y:75%;--fs:14.2cqw">05</div>
+  <div class="pb bold" style="--x:58.5%;--y:91.6%;--fs:14.2cqw">For life</div>
+  <div class="pb small caps" style="--x:4%;--y:85%;--r:-90deg;--fs:3.3cqw">In motion</div>
+</template>
 
 <script type="module" src="main.js"></script>
 </body>
