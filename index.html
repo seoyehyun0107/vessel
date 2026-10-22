@@ -33,7 +33,7 @@
 
 <header class="nav">
   <div class="nav__left">
-    <a class="nav__back" href="#" aria-label="포트폴리오 홈으로"><span class="nav__arrow">←</span> Home</a>
+    <a class="nav__back" href="https://yehyun-portfolio.vercel.app/" aria-label="포트폴리오 홈으로"><span class="nav__arrow">←</span> Home</a>
     <a class="nav__logo" href="#top">VESSEL®</a>
   </div>
   <nav class="nav__links">
@@ -275,17 +275,6 @@
   <div class="pb small caps" style="--x:4%;--y:85%;--r:-90deg;--fs:3.3cqw">In motion</div>
 </template>
 
-<script>
-  // Home: 포트폴리오에서 들어왔으면 그 페이지로, 아니면 맨 위로
-  (() => {
-    document.querySelector('.nav__back').addEventListener('click', e => {
-      e.preventDefault();
-      const fromPortfolio = new URLSearchParams(location.search).get('from') === 'portfolio';
-      if (history.length > 1 && (document.referrer || fromPortfolio)) history.back();
-      else window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  })();
-</script>
 <script type="module" src="main.js"></script>
 </body>
 </html>
